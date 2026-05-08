@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="screen-orientation" content="portrait" />
-  <title>Calculator</title>
+<title>Calculator</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -33,6 +32,7 @@
 
     /* Display */
     .display {
+      flex-shrink: 0;
       background: #111;
       border-radius: 16px;
       padding: 20px 24px 16px;
@@ -133,8 +133,8 @@
     button:hover { filter: brightness(1.12); }
     button:active { filter: brightness(0.85); }
 
-    /* Mobile: full screen, no scroll */
-    @media (max-width: 768px) {
+    /* Mobile: full screen in any orientation */
+    @media (max-width: 768px), (orientation: landscape) and (max-height: 500px) {
       .calculator {
         width: 100vw;
         height: 100vh;
@@ -144,27 +144,23 @@
       }
     }
 
-    /* Portrait lock: show overlay in landscape on mobile */
-    .rotate-msg {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #0f0f0f;
-      color: #f0f0f0;
-      place-items: center;
-      font-size: 18px;
-      z-index: 999;
-      text-align: center;
-      padding: 24px;
-    }
-
-    @media (orientation: landscape) and (max-width: 900px) {
-      .rotate-msg { display: grid; }
+    /* Mobile landscape: compact display so buttons get more room */
+    @media (orientation: landscape) and (max-height: 500px) {
+      .calculator { padding: 10px; }
+      .display {
+        min-height: 52px;
+        padding: 8px 14px;
+        margin-bottom: 10px;
+      }
+      .result { font-size: 26px; }
+      .result.small { font-size: 20px; }
+      .result.xsmall { font-size: 16px; }
+      .expression { font-size: 11px; min-height: 14px; }
+      .buttons { gap: 8px; }
     }
   </style>
 </head>
 <body>
-<div class="rotate-msg">Please rotate your device to portrait mode</div>
 <div class="calculator">
   <div class="display">
     <div class="expression" id="expression"></div>
