@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="screen-orientation" content="portrait" />
   <title>Calculator</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      min-height: 100vh;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -20,8 +23,12 @@
       background: #1a1a1a;
       border-radius: 24px;
       padding: 24px;
-      width: 340px;
+      height: 90vh;
+      height: 90dvh;
+      aspect-ratio: 340 / 568;
       box-shadow: 0 32px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
     }
 
     /* Display */
@@ -64,11 +71,13 @@
     .buttons {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(5, 1fr);
       gap: 12px;
+      flex: 1;
     }
 
     button {
-      height: 64px;
+      height: 100%;
       border: none;
       border-radius: 14px;
       font-size: 18px;
@@ -123,9 +132,39 @@
 
     button:hover { filter: brightness(1.12); }
     button:active { filter: brightness(0.85); }
+
+    /* Mobile: full screen, no scroll */
+    @media (max-width: 768px) {
+      .calculator {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        aspect-ratio: unset;
+        border-radius: 0;
+      }
+    }
+
+    /* Portrait lock: show overlay in landscape on mobile */
+    .rotate-msg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      place-items: center;
+      font-size: 18px;
+      z-index: 999;
+      text-align: center;
+      padding: 24px;
+    }
+
+    @media (orientation: landscape) and (max-width: 900px) {
+      .rotate-msg { display: grid; }
+    }
   </style>
 </head>
 <body>
+<div class="rotate-msg">Please rotate your device to portrait mode</div>
 <div class="calculator">
   <div class="display">
     <div class="expression" id="expression"></div>
