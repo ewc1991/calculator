@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f0f0f;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .calculator {
+      background: #1a1a1a;
+      border-radius: 24px;
+      padding: 24px;
+      width: 340px;
+      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.05);
+    }
+
+    /* Display */
+    .display {
+      background: #111;
+      border-radius: 16px;
+      padding: 20px 24px 16px;
+      margin-bottom: 20px;
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      overflow: hidden;
+    }
+
+    .expression {
+      font-size: 14px;
+      color: #555;
+      min-height: 20px;
+      word-break: break-all;
+      text-align: right;
+      transition: color 0.15s;
+    }
+
+    .result {
+      font-size: 40px;
+      font-weight: 300;
+      color: #f0f0f0;
+      word-break: break-all;
+      text-align: right;
+      letter-spacing: -1px;
+      transition: font-size 0.1s;
+    }
+
+    .result.small { font-size: 28px; }
+    .result.xsmall { font-size: 20px; }
+
+    /* Button grid */
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    button {
+      height: 64px;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 400;
+      cursor: pointer;
+      transition: transform 0.08s, filter 0.08s, background 0.1s;
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:active {
+      transform: scale(0.93);
+      filter: brightness(0.85);
+    }
+
+    /* Button variants */
+    .btn-func {
+      background: #2e2e2e;
+      color: #a0a0a0;
+      font-size: 15px;
+    }
+
+    .btn-op {
+      background: #ff9500;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .btn-op.active {
+      background: #fff;
+      color: #ff9500;
+    }
+
+    .btn-num {
+      background: #2a2a2a;
+      color: #f0f0f0;
+    }
+
+    .btn-zero {
+      grid-column: span 2;
+      border-radius: 14px;
+      text-align: left;
+      padding-left: 24px;
+    }
+
+    .btn-eq {
+      background: #ff9500;
+      color: #fff;
+      font-weight: 500;
+      font-size: 22px;
+    }
+
+    button:hover { filter: brightness(1.12); }
+    button:active { filter: brightness(0.85); }
+  </style>
+</head>
+<body>
+<div class="calculator">
+  <div class="display">
+    <div class="expression" id="expression"></div>
+    <div class="result" id="result">0</div>
+  </div>
+  <div class="buttons">
+    <!-- Row 1 -->
+    <button class="btn-func" data-action="clear">AC</button>
+    <button class="btn-func" data-action="sign">+/−</button>
+    <button class="btn-func" data-action="percent">%</button>
+    <button class="btn-op"   data-action="op" data-value="÷">÷</button>
+    <!-- Row 2 -->
+    <button class="btn-num"  data-action="num" data-value="7">7</button>
+    <button class="btn-num"  data-action="num" data-value="8">8</button>
+    <button class="btn-num"  data-action="num" data-value="9">9</button>
+    <button class="btn-op"   data-action="op" data-value="×">×</button>
+    <!-- Row 3 -->
+    <button class="btn-num"  data-action="num" data-value="4">4</button>
+    <button class="btn-num"  data-action="num" data-value="5">5</button>
+    <button class="btn-num"  data-action="num" data-value="6">6</button>
+    <button class="btn-op"   data-action="op" data-value="−">−</button>
+    <!-- Row 4 -->
+    <button class="btn-num"  data-action="num" data-value="1">1</button>
+    <button class="btn-num"  data-action="num" data-value="2">2</button>
+    <button class="btn-num"  data-action="num" data-value="3">3</button>
+    <button class="btn-op"   data-action="op" data-value="+">+</button>
+    <!-- Row 5 -->
+    <button class="btn-num btn-zero" data-action="num" data-value="0">0</button>
+    <button class="btn-num"  data-action="decimal">.</button>
+    <button class="btn-eq"   data-action="equals">=</button>
+  </div>
+</div>
+
+<script>
+  const expressionEl = document.getElementById('expression');
+  const resultEl     = document.getElementById('result');
+
+  const state = {
+    current:   '0',   // number being typed
+    previous:  null,  // stored left-hand operand
+    operator:  null,  // pending operator
+    justCalc:  false, // true right after = was pressed
+  };
+
+  const OPS = { '÷': (a, b) => a / b, '×': (a, b) => a * b, '−': (a, b) => a - b, '+': (a, b) => a + b };
+
+  function fmt(n) {
+    const s = parseFloat(n.toPrecision(12)).toString();
+    return s.length > 16 ? n.toExponential(6) : s;
+  }
+
+  function updateDisplay() {
+    const val = parseFloat(state.current);
+    const text = isNaN(val) ? 'Error' : fmt(val);
+    resultEl.textContent = text;
+    resultEl.className = 'result' + (text.length > 12 ? ' xsmall' : text.length > 8 ? ' small' : '');
+
+    // expression line
+    if (state.operator && state.previous !== null) {
+      expressionEl.textContent = `${fmt(state.previous)} ${state.operator}`;
+    } else {
+      expressionEl.textContent = '';
+    }
+
+    // highlight active operator button
+    document.querySelectorAll('.btn-op').forEach(btn => {
+      btn.classList.toggle('active', state.operator && btn.dataset.value === state.operator && state.justCalc === false && state.previous !== null);
+    });
+  }
+
+  function calculate(a, op, b) {
+    const result = OPS[op](a, b);
+    if (!isFinite(result)) return NaN;
+    return result;
+  }
+
+  function handleAction(action, value) {
+    switch (action) {
+      case 'num': {
+        if (state.justCalc) { state.current = value; state.justCalc = false; break; }
+        state.current = state.current === '0' ? value : state.current + value;
+        break;
+      }
+      case 'decimal': {
+        if (state.justCalc) { state.current = '0.'; state.justCalc = false; break; }
+        if (!state.current.includes('.')) state.current += '.';
+        break;
+      }
+      case 'op': {
+        const cur = parseFloat(state.current);
+        if (state.operator && !state.justCalc) {
+          // chain: evaluate pending operation first
+          const res = calculate(state.previous, state.operator, cur);
+          state.previous = isNaN(res) ? cur : res;
+          state.current  = String(state.previous);
+        } else {
+          state.previous = cur;
+        }
+        state.operator = value;
+        state.justCalc = false;
+        // next digit press will replace current
+        state.justCalc = true;
+        break;
+      }
+      case 'equals': {
+        if (state.operator === null || state.previous === null) break;
+        const a = state.previous;
+        const b = parseFloat(state.current);
+        const res = calculate(a, state.operator, b);
+        expressionEl.textContent = `${fmt(a)} ${state.operator} ${fmt(b)} =`;
+        state.current  = isNaN(res) ? 'Error' : String(fmt(res));
+        state.previous = null;
+        state.operator = null;
+        state.justCalc = true;
+        break;
+      }
+      case 'clear': {
+        state.current  = '0';
+        state.previous = null;
+        state.operator = null;
+        state.justCalc = false;
+        expressionEl.textContent = '';
+        break;
+      }
+      case 'sign': {
+        const v = parseFloat(state.current);
+        if (!isNaN(v)) state.current = String(-v);
+        break;
+      }
+      case 'percent': {
+        const v = parseFloat(state.current);
+        if (!isNaN(v)) state.current = String(v / 100);
+        break;
+      }
+    }
+    updateDisplay();
+  }
+
+  // Button clicks
+  document.querySelector('.buttons').addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    handleAction(btn.dataset.action, btn.dataset.value);
+  });
+
+  // Keyboard support
+  const KEY_MAP = {
+    '0':'num','1':'num','2':'num','3':'num','4':'num',
+    '5':'num','6':'num','7':'num','8':'num','9':'num',
+    '/':'op','*':'op','-':'op','+':'op',
+    'Enter':'equals','=':'equals',
+    'Backspace':'backspace','Escape':'clear',
+    '.':'decimal','%':'percent',
+  };
+  const KEY_OP = { '/':'÷', '*':'×', '-':'−', '+':'+' };
+
+  document.addEventListener('keydown', e => {
+    const action = KEY_MAP[e.key];
+    if (!action) return;
+    e.preventDefault();
+    if (action === 'backspace') {
+      if (state.justCalc) return;
+      state.current = state.current.length > 1 ? state.current.slice(0, -1) : '0';
+      updateDisplay();
+    } else {
+      const val = action === 'op' ? KEY_OP[e.key] : e.key;
+      handleAction(action, val);
+    }
+  });
+
+  updateDisplay();
+</script>
+</body>
+</html>
