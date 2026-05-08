@@ -144,6 +144,31 @@
       }
     }
 
+    /* Robot sprite */
+    .robot-sprite {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transform-origin: bottom center;
+      animation: robot-click 0.68s cubic-bezier(0.22,1,0.36,1) forwards;
+      filter: drop-shadow(0 2px 10px rgba(0,212,255,0.45));
+    }
+
+    @keyframes robot-click {
+      0%   { opacity:0; transform: translateY(-30px) scale(0.1) rotate(-20deg); }
+      22%  { opacity:1; transform: translateY(6px) scale(1.15) rotate(4deg); }
+      38%  { transform: translateY(0) scale(1) rotate(0deg); }
+      56%  { transform: translateY(18px) scale(0.92, 1.08); }
+      71%  { transform: translateY(-6px) scale(1.07, 0.94); }
+      83%  { transform: translateY(0) scale(1); }
+      100% { opacity:0; transform: translateY(-24px) scale(0.3) rotate(14deg); }
+    }
+
+    button.kb-active {
+      transform: scale(0.93) !important;
+      filter: brightness(0.85) !important;
+    }
+
     /* Mobile landscape: compact display so buttons get more room */
     @media (orientation: landscape) and (max-height: 500px) {
       .calculator { padding: 10px; }
@@ -299,10 +324,55 @@
     updateDisplay();
   }
 
+  // Robot sprite
+  const ROBOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 48" width="40" height="48">
+    <rect x="19" y="1" width="2" height="6" rx="1" fill="#888"/>
+    <circle cx="20" cy="1" r="3" fill="#ff9500"/>
+    <rect x="5" y="7" width="30" height="21" rx="6" fill="#3c3c3c" stroke="#606060" stroke-width="1"/>
+    <circle cx="14" cy="17" r="5" fill="#111"/>
+    <circle cx="14" cy="17" r="2.5" fill="#00d4ff"/>
+    <circle cx="15.5" cy="15.5" r="1" fill="white" opacity="0.5"/>
+    <circle cx="26" cy="17" r="5" fill="#111"/>
+    <circle cx="26" cy="17" r="2.5" fill="#00d4ff"/>
+    <circle cx="27.5" cy="15.5" r="1" fill="white" opacity="0.5"/>
+    <path d="M14 24 Q20 28 26 24" stroke="#777" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <rect x="16" y="28" width="8" height="4" rx="2" fill="#333"/>
+    <rect x="7" y="32" width="26" height="14" rx="5" fill="#2a2a2a" stroke="#505050" stroke-width="1"/>
+    <rect x="14" y="36" width="12" height="6" rx="2" fill="#1e1e1e" stroke="#404040" stroke-width="1"/>
+    <circle cx="17" cy="39" r="2" fill="#ff9500"/>
+    <circle cx="23" cy="39" r="2" fill="#00d4ff"/>
+  </svg>`;
+
+  function spawnRobot(btn) {
+    const rect = btn.getBoundingClientRect();
+    const W = 40, H = 48;
+    const el = document.createElement('div');
+    el.className = 'robot-sprite';
+    el.innerHTML = ROBOT_SVG;
+    el.style.left = (rect.left + rect.width / 2 - W / 2) + 'px';
+    el.style.top  = (rect.top - H + 5) + 'px';
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+
+  function getButtonForKey(key) {
+    if (/^[0-9]$/.test(key))        return document.querySelector(`button[data-action="num"][data-value="${key}"]`);
+    if (key === '/')                 return document.querySelector('button[data-value="÷"]');
+    if (key === '*')                 return document.querySelector('button[data-value="×"]');
+    if (key === '-')                 return document.querySelector('button[data-value="−"]');
+    if (key === '+')                 return document.querySelector('button[data-value="+"]');
+    if (key === 'Enter' || key === '=') return document.querySelector('button[data-action="equals"]');
+    if (key === 'Escape')            return document.querySelector('button[data-action="clear"]');
+    if (key === '.')                 return document.querySelector('button[data-action="decimal"]');
+    if (key === '%')                 return document.querySelector('button[data-action="percent"]');
+    return null;
+  }
+
   // Button clicks
   document.querySelector('.buttons').addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
+    spawnRobot(btn);
     handleAction(btn.dataset.action, btn.dataset.value);
   });
 
@@ -321,6 +391,12 @@
     const action = KEY_MAP[e.key];
     if (!action) return;
     e.preventDefault();
+    const btn = getButtonForKey(e.key);
+    if (btn) {
+      spawnRobot(btn);
+      btn.classList.add('kb-active');
+      setTimeout(() => btn.classList.remove('kb-active'), 150);
+    }
     if (action === 'backspace') {
       if (state.justCalc) return;
       state.current = state.current.length > 1 ? state.current.slice(0, -1) : '0';
